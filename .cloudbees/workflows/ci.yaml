@@ -1,0 +1,123 @@
+apiVersion: automation.cloudbees.io/v1alpha1
+kind: workflow
+name: AI Diagnostic Assistant CI
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  secrets-scan:
+    steps:
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+      - name: Secrets Detection
+        uses: cloudbees-io/trufflehog-secret-scan-code@v1
+        with:
+          image-tag: v3
+
+  sast-scan:
+    needs:
+      - secrets-scan
+    steps:
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+      - name: SAST Scan
+        uses: cloudbees-io/sonarqube-bundled-sast-scan-code@v2
+        with:
+          language: python
+
+  sca-scan:
+    needs:
+      - secrets-scan
+    steps:
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+      - name: SCA — Dependency Vulnerability Scan
+        uses: cloudbees-io/snyk-sca-scan-dependency@v1
+        with:
+          snyk-token: ${{ secrets.SNYK_TOKEN }}
+          language: python
+
+  build:
+    needs:
+      - sast-scan
+      - sca-scan
+    steps:
+      - name: Checkout
+        uses: cloudbees-io/checkout@v1
+      - name: Build AI diagnostic service
+        uses: docker://python:3.11-slim
+        run: |
+          pip install -r requirements.txt --quiet 2>/dev/null || echo "No requirements.txt"
+          echo "Build complete — ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }}"
+      - name: Register build artifact
+        uses: cloudbees-io/register-build-artifact@v2
+        with:
+          name: ai-diagnostic-assistant
+          version: 0.9.${{ cloudbees.run_number }}
+          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
+      - name: Publish build evidence
+        uses: cloudbees-io/publish-evidence-item@v1
+        with:
+          content: |
+            ## AI Diagnostic Assistant Build
+            - **Version**: 0.9.${{ cloudbees.run_number }}
+            - **Classification**: CRITICAL | ai | llm | agentic-ai | clinical | regulated
+            - **AI Governance**: OPEN FINDING — unregistered LLM usage (src/diagnostic_engine.py:34)
+            - **Owner**: AI Governance | Approval Status: NOT SUBMITTED
+          format: MARKDOWN
+
+  deploy-dev:
+    needs:
+      - build
+    environment: ai-diagnostic-dev
+    steps:
+      - name: Deploy to Dev
+        uses: docker://alpine:3.19
+        run: |
+          echo "Deploying ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to DEV"
+          echo "WARNING: AI model usage not registered with governance board"
+      - name: Register deployed artifact
+        uses: cloudbees-io/register-deployed-artifact@v2
+        with:
+          name: ai-diagnostic-assistant
+          version: 0.9.${{ cloudbees.run_number }}
+          environment-name: ai-diagnostic-dev
+          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
+
+  deploy-staging:
+    needs:
+      - deploy-dev
+    environment: ai-diagnostic-staging
+    steps:
+      - name: Deploy to Staging
+        uses: docker://alpine:3.19
+        run: |
+          echo "Deploying ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to STAGING"
+      - name: Register deployed artifact
+        uses: cloudbees-io/register-deployed-artifact@v2
+        with:
+          name: ai-diagnostic-assistant
+          version: 0.9.${{ cloudbees.run_number }}
+          environment-name: ai-diagnostic-staging
+          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
+
+  deploy-prod:
+    needs:
+      - deploy-staging
+    environment: ai-diagnostic-prod
+    steps:
+      - name: Deploy to Production
+        uses: docker://alpine:3.19
+        run: |
+          echo "Deploying ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to PRODUCTION"
+          echo "Target: ai-diagnostics.stryker.com"
+      - name: Register deployed artifact
+        uses: cloudbees-io/register-deployed-artifact@v2
+        with:
+          name: ai-diagnostic-assistant
+          version: 0.9.${{ cloudbees.run_number }}
+          environment-name: ai-diagnostic-prod
+          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
