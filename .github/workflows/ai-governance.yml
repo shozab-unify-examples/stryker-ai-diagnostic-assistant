@@ -1,0 +1,130 @@
+name: AI Governance Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ai-governance:
+    name: AI Governance — Model Registration Gate
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check AI governance manifest
+        id: ai-check
+        run: |
+          echo "Checking for AI governance manifest..."
+          if [ ! -f ai-governance.yaml ]; then
+            echo "manifest_present=false" >> $GITHUB_OUTPUT
+            echo "::error title=AI Governance Manifest Missing::No ai-governance.yaml found. AI-enabled applications must declare model usage, human owner, approval status, and traceability chain."
+          else
+            # Validate required fields
+            missing=""
+            for field in model_id model_version human_owner approval_status traceability_id; do
+              if ! grep -q "$field" ai-governance.yaml; then
+                missing="$missing $field"
+              fi
+            done
+            if [ -n "$missing" ]; then
+              echo "manifest_present=false" >> $GITHUB_OUTPUT
+              echo "::error title=AI Governance Manifest Incomplete::Missing required fields:$missing"
+            else
+              echo "manifest_present=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Scan for unregistered LLM usage
+        id: llm-scan
+        run: |
+          echo "Scanning for LLM API calls without registered model references..."
+          UNREGISTERED=$(grep -rn "openai\|anthropic\|bedrock\|langchain\|llm\|ChatCompletion\|chat.completions" \
+            --include="*.py" --include="*.js" --include="*.ts" . \
+            | grep -v "ai-governance.yaml" | grep -v ".github" | wc -l)
+          echo "unregistered_count=$UNREGISTERED" >> $GITHUB_OUTPUT
+          if [ "$UNREGISTERED" -gt 0 ]; then
+            echo "::warning title=Unregistered LLM Usage::Found $UNREGISTERED references to LLM APIs. Verify all models are declared in ai-governance.yaml."
+          fi
+
+      - name: Generate SARIF finding
+        if: steps.ai-check.outputs.manifest_present == 'false'
+        run: |
+          cat > ai-governance-findings.sarif << 'EOF'
+          {
+            "version": "2.1.0",
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "runs": [
+              {
+                "tool": {
+                  "driver": {
+                    "name": "CCI AI Governance",
+                    "version": "1.0.0",
+                    "rules": [
+                      {
+                        "id": "CCI-AI-001",
+                        "name": "UnregisteredAIModelUsage",
+                        "shortDescription": { "text": "Unregistered AI Model Usage" },
+                        "fullDescription": { "text": "Application references an LLM without model registration, approval workflow, or traceability." },
+                        "help": { "text": "Create ai-governance.yaml with model_id, model_version, human_owner, approval_status, and traceability_id. Submit for AI governance board review." },
+                        "properties": {
+                          "tags": ["ai-governance", "llm", "agentic-ai", "regulated"],
+                          "severity": "critical",
+                          "owner": "AI Governance",
+                          "policy": "AI Governance Required",
+                          "remediationEffortHours": 32,
+                          "estimatedNonComplianceCost": 500000
+                        }
+                      }
+                    ]
+                  }
+                },
+                "results": [
+                  {
+                    "ruleId": "CCI-AI-001",
+                    "level": "error",
+                    "message": { "text": "Unregistered AI model usage detected. Application uses LLM-based workflows without a governance manifest. No model registration, human owner, approval status, or traceability chain on record. Estimated non-compliance cost: $500,000. Remediation effort: 32 hours." },
+                    "locations": [
+                      {
+                        "physicalLocation": {
+                          "artifactLocation": { "uri": "src/diagnostic_engine.py", "uriBaseId": "%SRCROOT%" },
+                          "region": { "startLine": 34 }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+
+      - name: Upload SARIF
+        if: steps.ai-check.outputs.manifest_present == 'false'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ai-governance-findings.sarif
+          category: cci-ai-governance
+
+      - name: Fail pipeline — AI governance gate
+        if: steps.ai-check.outputs.manifest_present == 'false'
+        run: |
+          echo ""
+          echo "╔══════════════════════════════════════════════════════════════╗"
+          echo "║          CCI GOVERNANCE GATE FAILURE                        ║"
+          echo "╠══════════════════════════════════════════════════════════════╣"
+          echo "║  Policy:      AI Governance Required                         ║"
+          echo "║  Severity:    CRITICAL                                       ║"
+          echo "║  Finding:     Unregistered AI model usage                    ║"
+          echo "║  Resource:    src/diagnostic_engine.py:34                    ║"
+          echo "║  Owner:       AI Governance                                  ║"
+          echo "║  Effort:      32 hours                                      ║"
+          echo "║  Cost Risk:   \$500,000                                      ║"
+          echo "╚══════════════════════════════════════════════════════════════╝"
+          exit 1
