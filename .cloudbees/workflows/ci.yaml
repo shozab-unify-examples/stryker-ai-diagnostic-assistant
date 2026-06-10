@@ -16,6 +16,7 @@ jobs:
         uses: cloudbees-io/trufflehog-secret-scan-code@v1
         with:
           image-tag: v3
+          branch: main
 
   sast-scan:
     needs:
@@ -57,7 +58,7 @@ jobs:
         with:
           name: ai-diagnostic-assistant
           version: 0.9.${{ cloudbees.run_number }}
-          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
+          url: https://github.com/shozab-unify-examples/stryker-ai-diagnostic-assistant
       - name: Publish build evidence
         uses: cloudbees-io/publish-evidence-item@v1
         with:
@@ -85,7 +86,7 @@ jobs:
           name: ai-diagnostic-assistant
           version: 0.9.${{ cloudbees.run_number }}
           environment-name: ai-diagnostic-dev
-          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
+          url: https://github.com/shozab-unify-examples/stryker-ai-diagnostic-assistant
 
   deploy-staging:
     needs:
@@ -102,7 +103,7 @@ jobs:
           name: ai-diagnostic-assistant
           version: 0.9.${{ cloudbees.run_number }}
           environment-name: ai-diagnostic-staging
-          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
+          url: https://github.com/shozab-unify-examples/stryker-ai-diagnostic-assistant
 
   deploy-prod:
     needs:
@@ -120,4 +121,4 @@ jobs:
           name: ai-diagnostic-assistant
           version: 0.9.${{ cloudbees.run_number }}
           environment-name: ai-diagnostic-prod
-          url: https://github.com/cloudbees-days/stryker-ai-diagnostic-assistant
+          url: https://github.com/shozab-unify-examples/stryker-ai-diagnostic-assistant
