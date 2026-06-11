@@ -14,13 +14,16 @@ jobs:
         uses: cloudbees-io/checkout@v1
       - name: Mock Secrets Scan
         uses: docker://alpine:3.19
-        run: echo "[SCAN] Secrets scan complete — 0 findings"
+        run: |
+          echo "[SCAN] Secrets scan complete — 0 findings"
       - name: Mock SAST Scan
         uses: docker://alpine:3.19
-        run: echo "[SCAN] SAST scan complete — 1 finding (HIGH: unregistered LLM usage)"
+        run: |
+          echo "[SCAN] SAST scan complete — 1 finding (HIGH: unregistered LLM usage)"
       - name: Mock SCA Scan
         uses: docker://alpine:3.19
-        run: echo "[SCAN] SCA scan complete — 4 vulnerable dependencies"
+        run: |
+          echo "[SCAN] SCA scan complete — 4 vulnerable dependencies"
       - name: Publish Security Evidence
         uses: cloudbees-io/publish-evidence-item@v1
         with:
@@ -47,7 +50,8 @@ jobs:
         uses: cloudbees-io/checkout@v1
       - name: Build
         uses: docker://alpine:3.19
-        run: echo "Building ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }}"
+        run: |
+          echo "Building ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }}"
       - name: Register build artifact
         id: register-artifact
         uses: cloudbees-io/register-build-artifact@v2
@@ -70,7 +74,8 @@ jobs:
     steps:
       - name: Deploy to Dev
         uses: docker://alpine:3.19
-        run: echo "Deployed ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to DEV"
+        run: |
+          echo "Deployed ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to DEV"
       - name: Register Deployed Artifact
         uses: cloudbees-io/register-deployed-artifact@v2
         with:
@@ -87,7 +92,8 @@ jobs:
     steps:
       - name: Deploy to Staging
         uses: docker://alpine:3.19
-        run: echo "Deployed ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to STAGING"
+        run: |
+          echo "Deployed ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to STAGING"
       - name: Register Deployed Artifact
         uses: cloudbees-io/register-deployed-artifact@v2
         with:
@@ -104,7 +110,8 @@ jobs:
     steps:
       - name: Deploy to Production
         uses: docker://alpine:3.19
-        run: echo "Deployed ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to PRODUCTION"
+        run: |
+          echo "Deployed ai-diagnostic-assistant v0.9.${{ cloudbees.run_number }} to PRODUCTION"
       - name: Register Deployed Artifact
         uses: cloudbees-io/register-deployed-artifact@v2
         with:
