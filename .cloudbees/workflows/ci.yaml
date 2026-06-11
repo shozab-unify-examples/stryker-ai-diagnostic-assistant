@@ -77,7 +77,7 @@ jobs:
           artifact-id: ${{ needs.build.outputs.artifact-id }}
           name: ai-diagnostic-assistant
           version: 0.9.${{ cloudbees.run_number }}
-          environment-name: ai-diagnostic-dev
+          environment-name: stryker-dev
           url: https://github.com/shozab-unify-examples/stryker-ai-diagnostic-assistant
 
   deploy-staging:
@@ -94,7 +94,7 @@ jobs:
           artifact-id: ${{ needs.build.outputs.artifact-id }}
           name: ai-diagnostic-assistant
           version: 0.9.${{ cloudbees.run_number }}
-          environment-name: ai-diagnostic-staging
+          environment-name: stryker-staging
           url: https://github.com/shozab-unify-examples/stryker-ai-diagnostic-assistant
 
   deploy-prod:
@@ -111,5 +111,5 @@ jobs:
           artifact-id: ${{ needs.build.outputs.artifact-id }}
           name: ai-diagnostic-assistant
           version: 0.9.${{ cloudbees.run_number }}
-          environment-name: ai-diagnostic-prod
+          environment-name: stryker-prod
           url: https://github.com/shozab-unify-examples/stryker-ai-diagnostic-assistant
