@@ -72,7 +72,6 @@ jobs:
   deploy-dev:
     needs:
       - build
-    environment: ai-diagnostic-dev
     steps:
       - name: Deploy to Dev
         uses: docker://alpine:3.19
@@ -90,7 +89,6 @@ jobs:
   deploy-staging:
     needs:
       - deploy-dev
-    environment: ai-diagnostic-staging
     steps:
       - name: Deploy to Staging
         uses: docker://alpine:3.19
@@ -107,7 +105,6 @@ jobs:
   deploy-prod:
     needs:
       - deploy-staging
-    environment: ai-diagnostic-prod
     steps:
       - name: Deploy to Production
         uses: docker://alpine:3.19
